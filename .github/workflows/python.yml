@@ -44,7 +44,7 @@ jobs:
 
   docker:
     name: ${{ matrix.title }}
-    runs-on: ubuntu-latest
+    runs-on: linux-alvaro
     if: ${{ !contains(github.event.pull_request.title, 'WIP') }}
     timeout-minutes: 60
     strategy:
@@ -107,61 +107,3 @@ jobs:
           sudo sysctl -w kernel.core_pattern="core.%e.%p"
           ulimit -c unlimited
           archery docker run ${{ matrix.image }}
-      - name: Docker Push
-        if: success() && github.event_name == 'push' && github.repository == 'apache/arrow'
-        continue-on-error: true
-        run: archery docker push ${{ matrix.image }}
-
-  macos:
-    name: AMD64 MacOS 10.15 Python 3
-    runs-on: macos-latest
-    if: ${{ !contains(github.event.pull_request.title, 'WIP') }}
-    timeout-minutes: 60
-    env:
-      ARROW_HOME: /usr/local
-      ARROW_DATASET: ON
-      ARROW_FLIGHT: ON
-      ARROW_GANDIVA: ON
-      ARROW_HDFS: ON
-      ARROW_JEMALLOC: ON
-      ARROW_ORC: ON
-      ARROW_PARQUET: ON
-      PARQUET_REQUIRE_ENCRYPTION: ON
-      ARROW_PLASMA: ON
-      ARROW_PYTHON: ON
-      ARROW_S3: ON
-      ARROW_WITH_ZLIB: ON
-      ARROW_WITH_LZ4: ON
-      ARROW_WITH_BZ2: ON
-      ARROW_WITH_ZSTD: ON
-      ARROW_WITH_SNAPPY: ON
-      ARROW_WITH_BROTLI: ON
-      ARROW_BUILD_TESTS: OFF
-      CMAKE_ARGS: "-DPython3_EXECUTABLE=/usr/local/bin/python3"
-      PYARROW_TEST_LARGE_MEMORY: ON
-    steps:
-      - name: Checkout Arrow
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-          submodules: recursive
-      - name: Install Dependencies
-        shell: bash
-        run: |
-          rm -f /usr/local/bin/2to3
-          brew update --preinstall
-          brew install --overwrite git
-          brew bundle --file=cpp/Brewfile
-          brew install coreutils
-          python3 -mpip install \
-            -r python/requirements-build.txt \
-            -r python/requirements-test.txt
-      - name: Build
-        shell: bash
-        run: |
-          export PYTHON=python3
-          ci/scripts/cpp_build.sh $(pwd) $(pwd)/build
-          ci/scripts/python_build.sh $(pwd) $(pwd)/build
-      - name: Test
-        shell: bash
-        run: ci/scripts/python_test.sh $(pwd) $(pwd)/build
